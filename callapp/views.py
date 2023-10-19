@@ -28,9 +28,32 @@
 #         return render(request, 'result.html', dct)
 import subprocess
 from django.shortcuts import render
+import phonenumbers
+from phonenumbers import geocoder, carrier
 
 def lookup(request):
     return render(request, "lookup.html")
+
+# def truecaller_info(request):
+#     if request.method == "POST":
+#         phone_numbers = request.POST.get("contact")  # Replace with the phone numbers you want to lookup
+#         phone_numbers_list = phone_numbers.split(',')
+#         results = {}
+
+#         for phone_number in phone_numbers_list:
+#             command = f"truecallerpy -s {phone_number.strip()} --name"
+#             try:
+#                 output = subprocess.check_output(command, shell=True, text=True)
+#             except subprocess.CalledProcessError as e:
+#                 output = f"Error: {e}"
+#             results[phone_number] = output
+
+#         context = {
+#             'results': results,
+#         }
+#         return render(request, 'result.html', context)
+
+
 
 def truecaller_info(request):
     if request.method == "POST":
@@ -39,14 +62,20 @@ def truecaller_info(request):
         results = {}
 
         for phone_number in phone_numbers_list:
-            command = f"truecallerpy -s {phone_number.strip()} --name"
             try:
-                output = subprocess.check_output(command, shell=True, text=True)
-            except subprocess.CalledProcessError as e:
-                output = f"Error: {e}"
-            results[phone_number] = output
+                parsed_number = phonenumbers.parse(phone_number, None)
+                region = geocoder.description_for_number(parsed_number, "en")
+                operator = carrier.name_for_number(parsed_number, "en")
+
+                results[phone_number] = {
+                    'region': region,
+                    'operator': operator,
+                }
+            except phonenumbers.phonenumberutil.NumberFormatException as e:
+                results[phone_number] = f"Error: {e}"
 
         context = {
             'results': results,
         }
         return render(request, 'result.html', context)
+
